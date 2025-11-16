@@ -1,0 +1,15 @@
+// Production schema for PostgreSQL
+// Copy this to schema.prisma before deploying to Vercel
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Copy all models from schema.prisma here
+// This file is just a reference - update schema.prisma directly for production
+
