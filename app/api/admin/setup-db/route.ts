@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 
+export const dynamic = 'force-dynamic'
+
 // This endpoint pushes the database schema
 // Call it once after deployment: GET /api/admin/setup-db
 export async function GET(request: NextRequest) {

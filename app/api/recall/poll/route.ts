@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { checkBotStatus } from '@/lib/recall'
 import axios from 'axios'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)

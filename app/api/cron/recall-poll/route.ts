@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { checkBotStatus } from '@/lib/recall'
 import axios from 'axios'
 
+export const dynamic = 'force-dynamic'
+
 // This endpoint should be called periodically (e.g., via Vercel Cron or similar)
 export async function GET(request: NextRequest) {
   try {

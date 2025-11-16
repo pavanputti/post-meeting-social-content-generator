@@ -6,6 +6,8 @@ import { getCalendarEvents } from '@/lib/google-calendar'
 import { extractZoomLink, extractTeamsLink, extractGoogleMeetLink, detectPlatform } from '@/lib/utils'
 import { createRecallBot } from '@/lib/recall'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
