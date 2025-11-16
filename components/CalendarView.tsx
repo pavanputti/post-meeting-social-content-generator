@@ -1,0 +1,233 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
+import { Calendar, Clock, Users, Video, Settings, LogOut } from 'lucide-react'
+import MeetingList from './MeetingList'
+import UpcomingMeetingCard from './UpcomingMeetingCard'
+import Link from 'next/link'
+
+export default function CalendarView() {
+  const { data: session } = useSession()
+  const [events, setEvents] = useState<any[]>([])
+  const [meetings, setMeetings] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showPast, setShowPast] = useState(false)
+
+  useEffect(() => {
+    if (session) {
+      fetchEvents()
+      if (!showPast) {
+        fetchMeetings()
+      }
+    }
+  }, [session, showPast])
+
+  const fetchEvents = async () => {
+    try {
+      setLoading(true)
+      const now = new Date()
+      const timeMin = showPast ? undefined : now.toISOString()
+      const timeMax = showPast ? now.toISOString() : undefined
+
+      const params = new URLSearchParams()
+      if (timeMin) params.append('timeMin', timeMin)
+      if (timeMax) params.append('timeMax', timeMax)
+
+      const response = await fetch(`/api/calendar/events?${params}`)
+      const data = await response.json()
+      setEvents(data.events || [])
+    } catch (error) {
+      console.error('Error fetching events:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchMeetings = async () => {
+    try {
+      const response = await fetch('/api/meetings?past=false')
+      const data = await response.json()
+      setMeetings(data.meetings || [])
+    } catch (error) {
+      console.error('Error fetching meetings:', error)
+    }
+  }
+
+  const handleToggleNotetaker = async (event: any, enabled: boolean) => {
+    // Find meeting for this event
+    const meeting = meetings.find(
+      (m) =>
+        m.googleAccountId === event.googleAccountId &&
+        new Date(m.startTime).getTime() === new Date(event.start.dateTime).getTime()
+    )
+    
+    if (meeting) {
+      const response = await fetch(`/api/meetings/${meeting.id}/notetaker`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled }),
+      })
+      
+      if (response.ok) {
+        fetchMeetings()
+      } else {
+        throw new Error('Failed to update notetaker')
+      }
+    } else {
+      // Meeting doesn't exist yet, need to sync first
+      const syncResponse = await fetch('/api/meetings/sync', { method: 'POST' })
+      if (syncResponse.ok) {
+        await fetchMeetings()
+        // Try again after sync
+        const updatedMeetings = await fetch('/api/meetings?past=false').then(r => r.json())
+        const newMeeting = updatedMeetings.meetings?.find(
+          (m: any) =>
+            m.googleAccountId === event.googleAccountId &&
+            new Date(m.startTime).getTime() === new Date(event.start.dateTime).getTime()
+        )
+        if (newMeeting) {
+          await handleToggleNotetaker(event, enabled)
+        }
+      } else {
+        alert('Please sync your calendar first to enable notetaker for this meeting')
+      }
+    }
+  }
+
+  const handleSync = async () => {
+    try {
+      const response = await fetch('/api/meetings/sync', { method: 'POST' })
+      const data = await response.json()
+      if (data.error) {
+        alert(`Error: ${data.error}`)
+        console.error('Sync error:', data)
+      } else if (data.meetings) {
+        alert(`Synced ${data.count} meetings`)
+        fetchEvents()
+        fetchMeetings()
+      } else {
+        alert('No meetings synced. Check if you have calendar events.')
+      }
+    } catch (error) {
+      console.error('Error syncing meetings:', error)
+      alert(`Failed to sync meetings: ${error}`)
+    }
+  }
+
+  const handleCheckTranscripts = async () => {
+    try {
+      const response = await fetch('/api/recall/poll', { method: 'POST' })
+      const data = await response.json()
+      if (data.error) {
+        alert(`Error: ${data.error}`)
+      } else {
+        const updatedCount = data.count || 0
+        if (updatedCount > 0) {
+          alert(`Checked ${updatedCount} meeting(s). ${data.updated?.filter((u: any) => u.hasTranscript).length || 0} transcript(s) available.`)
+          fetchMeetings()
+        } else {
+          alert('No meetings to check. All transcripts are up to date or no meetings with bots found.')
+        }
+      }
+    } catch (error) {
+      console.error('Error checking transcripts:', error)
+      alert(`Failed to check transcripts: ${error}`)
+    }
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto">
+      <header className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold">Post-Meeting Content Generator</h1>
+          <p className="text-gray-600 mt-1">Welcome, {session?.user?.name || session?.user?.email}</p>
+        </div>
+        <div className="flex gap-4">
+          <button
+            onClick={handleSync}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Sync Calendar
+          </button>
+          <button
+            onClick={handleCheckTranscripts}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          >
+            Check for Transcripts
+          </button>
+          <Link
+            href="/settings"
+            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 flex items-center gap-2"
+          >
+            <Settings className="w-4 h-4" />
+            Settings
+          </Link>
+          <Link
+            href="/api/auth/signout"
+            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 flex items-center gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            Sign Out
+          </Link>
+        </div>
+      </header>
+
+      <div className="mb-6 flex gap-4">
+        <button
+          onClick={() => setShowPast(false)}
+          className={`px-4 py-2 rounded-lg ${
+            !showPast
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+          }`}
+        >
+          Upcoming
+        </button>
+        <button
+          onClick={() => setShowPast(true)}
+          className={`px-4 py-2 rounded-lg ${
+            showPast
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+          }`}
+        >
+          Past Meetings
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="text-center py-12">Loading...</div>
+      ) : showPast ? (
+        <MeetingList showPast={true} />
+      ) : (
+        <div className="space-y-4">
+          {events.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              No upcoming events found. Sync your calendar to get started.
+            </div>
+          ) : (
+            events.map((event) => {
+              const meeting = meetings.find(
+                (m) =>
+                  m.googleAccountId === event.googleAccountId &&
+                  new Date(m.startTime).getTime() === new Date(event.start.dateTime).getTime()
+              )
+              return (
+                <UpcomingMeetingCard
+                  key={event.id}
+                  event={event}
+                  meeting={meeting}
+                  onToggleNotetaker={(enabled) =>
+                    handleToggleNotetaker(event, enabled)
+                  }
+                />
+              )
+            })
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
