@@ -420,11 +420,6 @@ export default function MeetingDetail({
 
             {meeting.transcript && !meeting.generatedPost && (
               <div className="mb-6">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                  <p className="text-blue-800 text-sm">
-                    <strong>Free AI Post Generation:</strong> Posts are generated using free AI (Gemini API) or smart templates. No payment required!
-                  </p>
-                </div>
                 <label className="block text-sm font-medium mb-2">
                   Select Automation (optional)
                 </label>
