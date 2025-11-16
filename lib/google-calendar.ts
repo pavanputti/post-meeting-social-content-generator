@@ -22,8 +22,6 @@ export async function getCalendarEvents(
     maxResults: 100,
     singleEvents: true,
     orderBy: 'startTime',
-    // Request conference data to get Meet links
-    conferenceDataVersion: 1,
   })
   
   return response.data.items || []
