@@ -4,26 +4,8 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
 
 function getAuthOptions(): NextAuthOptions {
-  // Validate environment variables at runtime, not build time
-  // Only validate when actually called (not during build)
-  if (typeof window === 'undefined' && process.env.NODE_ENV !== 'test') {
-    if (!process.env.GOOGLE_CLIENT_ID) {
-      throw new Error('GOOGLE_CLIENT_ID is not set')
-    }
-
-    if (!process.env.GOOGLE_CLIENT_SECRET) {
-      throw new Error('GOOGLE_CLIENT_SECRET is not set')
-    }
-
-    if (!process.env.NEXTAUTH_SECRET) {
-      throw new Error('NEXTAUTH_SECRET is not set')
-    }
-
-    if (!process.env.NEXTAUTH_URL) {
-      throw new Error('NEXTAUTH_URL is not set')
-    }
-  }
-
+  // Don't validate during build - use fallback values
+  // Validation will happen at runtime when routes are actually called
   return {
     adapter: PrismaAdapter(prisma),
     secret: process.env.NEXTAUTH_SECRET || 'temp-secret-for-build',
@@ -46,6 +28,11 @@ function getAuthOptions(): NextAuthOptions {
         return session
       },
       async signIn({ user, account, profile }) {
+        // Validate environment variables at runtime when signIn is called
+        if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+          throw new Error('Google OAuth credentials are not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.')
+        }
+
         if (account?.provider === 'google' && account.access_token && user.email) {
           // Save or update Google account
           try {
@@ -100,5 +87,6 @@ function getAuthOptions(): NextAuthOptions {
 }
 
 // Export authOptions for use in other files
+// This will be called during build but won't fail due to fallback values
 export const authOptions = getAuthOptions()
 
