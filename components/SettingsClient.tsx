@@ -315,7 +315,7 @@ export default function SettingsClient() {
 
             {automations.length === 0 && (
               <p className="text-gray-500 text-center py-8">
-                No automations yet. Click "Add Automation" to create one.
+                No automations yet. Click &quot;Add Automation&quot; to create one.
               </p>
             )}
           </div>

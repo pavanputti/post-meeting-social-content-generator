@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { format } from 'date-fns'
 import { Calendar, Clock, Users, Video } from 'lucide-react'
 import MeetingDetail from './MeetingDetail'
@@ -21,11 +21,7 @@ export default function MeetingList({ showPast }: { showPast: boolean }) {
   const [loading, setLoading] = useState(true)
   const [selectedMeeting, setSelectedMeeting] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchMeetings()
-  }, [showPast])
-
-  const fetchMeetings = async () => {
+  const fetchMeetings = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/meetings?past=${showPast}`)
@@ -36,7 +32,11 @@ export default function MeetingList({ showPast }: { showPast: boolean }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [showPast])
+
+  useEffect(() => {
+    fetchMeetings()
+  }, [fetchMeetings])
 
   const getPlatformIcon = (platform: string | null) => {
     switch (platform) {

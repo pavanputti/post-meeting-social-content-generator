@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { format } from 'date-fns'
 import { X, Copy, Send, Loader2, ChevronDown, ChevronUp, Mail, FileText } from 'lucide-react'
 import { useSession } from 'next-auth/react'
@@ -51,12 +51,7 @@ export default function MeetingDetail({
   const [showTranscript, setShowTranscript] = useState(false)
   const [showEmail, setShowEmail] = useState(false)
 
-  useEffect(() => {
-    fetchMeeting()
-    fetchAutomations()
-  }, [meetingId])
-
-  const fetchMeeting = async () => {
+  const fetchMeeting = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/meetings/${meetingId}`)
@@ -67,9 +62,9 @@ export default function MeetingDetail({
     } finally {
       setLoading(false)
     }
-  }
+  }, [meetingId])
 
-  const fetchAutomations = async () => {
+  const fetchAutomations = useCallback(async () => {
     try {
       const response = await fetch('/api/automations')
       const data = await response.json()
@@ -77,7 +72,12 @@ export default function MeetingDetail({
     } catch (error) {
       console.error('Error fetching automations:', error)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchMeeting()
+    fetchAutomations()
+  }, [fetchMeeting, fetchAutomations])
 
   const handleGenerate = async () => {
     if (!meeting?.transcript) {

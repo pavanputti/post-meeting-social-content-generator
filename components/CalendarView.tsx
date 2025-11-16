@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { Calendar, Clock, Users, Video, Settings, LogOut } from 'lucide-react'
 import MeetingList from './MeetingList'
@@ -14,16 +14,7 @@ export default function CalendarView() {
   const [loading, setLoading] = useState(true)
   const [showPast, setShowPast] = useState(false)
 
-  useEffect(() => {
-    if (session) {
-      fetchEvents()
-      if (!showPast) {
-        fetchMeetings()
-      }
-    }
-  }, [session, showPast])
-
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     try {
       setLoading(true)
       const now = new Date()
@@ -42,9 +33,9 @@ export default function CalendarView() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [showPast])
 
-  const fetchMeetings = async () => {
+  const fetchMeetings = useCallback(async () => {
     try {
       const response = await fetch('/api/meetings?past=false')
       const data = await response.json()
@@ -52,7 +43,16 @@ export default function CalendarView() {
     } catch (error) {
       console.error('Error fetching meetings:', error)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (session) {
+      fetchEvents()
+      if (!showPast) {
+        fetchMeetings()
+      }
+    }
+  }, [session, showPast, fetchEvents, fetchMeetings])
 
   const handleToggleNotetaker = async (event: any, enabled: boolean) => {
     // Find meeting for this event
