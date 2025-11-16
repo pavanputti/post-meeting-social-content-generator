@@ -43,3 +43,7 @@ prisma/dev.db-journal
 *.tsbuildinfo
 next-env.d.ts
 
+# test files with tokens (NEVER COMMIT)
+test-facebook-token.js
+test-*.js
+

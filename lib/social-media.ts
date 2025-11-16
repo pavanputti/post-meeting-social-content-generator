@@ -143,7 +143,9 @@ export async function postToFacebook(userId: string, content: string): Promise<b
       throw new Error('Facebook not connected')
     }
 
-    // First, try to get user's pages
+    // First, try to get user's pages (if user is admin of any pages)
+    // Note: This may fail if user doesn't have page admin permissions
+    // In that case, we'll fall back to posting to user feed
     let pageId: string | null = null
     let pageAccessToken: string | null = null
 
@@ -164,6 +166,7 @@ export async function postToFacebook(userId: string, content: string): Promise<b
         pageAccessToken = pagesResponse.data.data[0].access_token
       }
     } catch (error: any) {
+      // If we can't get pages, that's okay - we'll post to user feed instead
       console.log('Could not fetch pages, will try user feed:', error.message)
     }
 

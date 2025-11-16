@@ -15,8 +15,10 @@ export async function GET(request: NextRequest) {
   const redirectUri = `${process.env.NEXTAUTH_URL}/api/auth/facebook/callback`
   const state = session.user.id
 
-  // Request permissions for posting to user feed and pages
-  const scope = 'pages_manage_posts,pages_read_engagement,publish_to_groups,user_posts'
+  // Request permissions for posting to user feed
+  // Note: For pages, we'll use page access tokens obtained via /me/accounts endpoint
+  // Only request user_posts which is a valid permission for posting to user feed
+  const scope = 'user_posts'
   const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=${scope}`
 
   return NextResponse.redirect(authUrl)

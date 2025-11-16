@@ -316,12 +316,6 @@ export async function POST(
             console.error('Facebook posting error:', error)
             errorMessage = error.message || 'Facebook not connected. Please connect your Facebook account in Settings.'
           }
-        } else if (platform === 'twitter') {
-          // Twitter posting not yet implemented
-          return NextResponse.json(
-            { error: 'Twitter posting is not yet implemented' },
-            { status: 501 }
-          )
         } else {
           return NextResponse.json(
             { error: `Invalid platform: ${platform}` },

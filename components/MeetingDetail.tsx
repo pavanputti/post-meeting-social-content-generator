@@ -18,7 +18,6 @@ interface Meeting {
   followUpEmail: string | null
   postedToLinkedIn: boolean
   postedToFacebook: boolean
-  postedToTwitter: boolean
 }
 
 interface Automation {
@@ -177,7 +176,7 @@ export default function MeetingDetail({
     }
   }
 
-  const handlePost = async (platform: 'linkedin' | 'facebook' | 'twitter', e?: React.MouseEvent) => {
+  const handlePost = async (platform: 'linkedin' | 'facebook', e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault()
       e.stopPropagation()
@@ -254,7 +253,6 @@ export default function MeetingDetail({
   const postedPlatforms = []
   if (meeting.postedToLinkedIn) postedPlatforms.push({ platform: 'LinkedIn', automation: linkedInAutomations.find(a => a.id === selectedAutomation)?.name || 'Default' })
   if (meeting.postedToFacebook) postedPlatforms.push({ platform: 'Facebook', automation: facebookAutomations.find(a => a.id === selectedAutomation)?.name || 'Default' })
-  if (meeting.postedToTwitter) postedPlatforms.push({ platform: 'Twitter', automation: 'Default' })
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -489,7 +487,7 @@ export default function MeetingDetail({
                     <button
                       onClick={(e) => handlePost('linkedin', e)}
                       disabled={posting}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
                       type="button"
                     >
                       {posting ? (
@@ -497,14 +495,14 @@ export default function MeetingDetail({
                       ) : (
                         <Send className="w-4 h-4" />
                       )}
-                      Post
+                      Post to LinkedIn
                     </button>
                   )}
                   {!meeting.postedToFacebook && (
                     <button
                       onClick={(e) => handlePost('facebook', e)}
                       disabled={posting}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
                       type="button"
                     >
                       {posting ? (
@@ -512,22 +510,7 @@ export default function MeetingDetail({
                       ) : (
                         <Send className="w-4 h-4" />
                       )}
-                      Post
-                    </button>
-                  )}
-                  {!meeting.postedToTwitter && (
-                    <button
-                      onClick={(e) => handlePost('twitter', e)}
-                      disabled={posting}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
-                      type="button"
-                    >
-                      {posting ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Send className="w-4 h-4" />
-                      )}
-                      Post
+                      Post to Facebook
                     </button>
                   )}
                 </div>
