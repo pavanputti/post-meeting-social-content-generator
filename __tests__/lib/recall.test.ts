@@ -27,7 +27,7 @@ describe('Recall.ai Integration', () => {
 
       expect(result).toEqual(mockBot)
       expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.stringContaining('/bot/'),
+        expect.stringContaining('/bot'),
         expect.objectContaining({
           meeting_url: mockMeetingUrl,
         }),
@@ -54,7 +54,7 @@ describe('Recall.ai Integration', () => {
 
       expect(result).toEqual(mockBot)
       expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining(`/bot/${mockBotId}/`),
+        expect.stringContaining(`/bot/${mockBotId}`),
         expect.objectContaining({
           headers: expect.objectContaining({
             Authorization: `Token ${mockApiKey}`,
@@ -69,16 +69,23 @@ describe('Recall.ai Integration', () => {
       const mockBot = {
         id: mockBotId,
         status: 'completed',
-        bot_media: {
-          transcript: {
-            status: 'completed',
-            url: 'https://example.com/transcript.txt',
+        recordings: [
+          {
+            id: 'recording-123',
+            media_shortcuts: {
+              transcript: {
+                data: {
+                  download_url: 'https://example.com/transcript.txt',
+                },
+              },
+              video_mixed: {
+                data: {
+                  download_url: 'https://example.com/recording.mp4',
+                },
+              },
+            },
           },
-          recording: {
-            status: 'completed',
-            url: 'https://example.com/recording.mp4',
-          },
-        },
+        ],
       }
 
       mockedAxios.get.mockResolvedValueOnce({ data: mockBot })
@@ -96,7 +103,7 @@ describe('Recall.ai Integration', () => {
       const mockBot = {
         id: mockBotId,
         status: 'scheduled',
-        bot_media: null,
+        recordings: [],
       }
 
       mockedAxios.get.mockResolvedValueOnce({ data: mockBot })
