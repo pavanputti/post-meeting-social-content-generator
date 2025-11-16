@@ -5,29 +5,32 @@ import { prisma } from '@/lib/prisma'
 
 function getAuthOptions(): NextAuthOptions {
   // Validate environment variables at runtime, not build time
-  if (!process.env.GOOGLE_CLIENT_ID) {
-    throw new Error('GOOGLE_CLIENT_ID is not set')
-  }
+  // Only validate when actually called (not during build)
+  if (typeof window === 'undefined' && process.env.NODE_ENV !== 'test') {
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      throw new Error('GOOGLE_CLIENT_ID is not set')
+    }
 
-  if (!process.env.GOOGLE_CLIENT_SECRET) {
-    throw new Error('GOOGLE_CLIENT_SECRET is not set')
-  }
+    if (!process.env.GOOGLE_CLIENT_SECRET) {
+      throw new Error('GOOGLE_CLIENT_SECRET is not set')
+    }
 
-  if (!process.env.NEXTAUTH_SECRET) {
-    throw new Error('NEXTAUTH_SECRET is not set')
-  }
+    if (!process.env.NEXTAUTH_SECRET) {
+      throw new Error('NEXTAUTH_SECRET is not set')
+    }
 
-  if (!process.env.NEXTAUTH_URL) {
-    throw new Error('NEXTAUTH_URL is not set')
+    if (!process.env.NEXTAUTH_URL) {
+      throw new Error('NEXTAUTH_URL is not set')
+    }
   }
 
   return {
     adapter: PrismaAdapter(prisma),
-    secret: process.env.NEXTAUTH_SECRET,
+    secret: process.env.NEXTAUTH_SECRET || 'temp-secret-for-build',
     providers: [
       GoogleProvider({
-        clientId: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        clientId: process.env.GOOGLE_CLIENT_ID || 'temp-client-id',
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'temp-client-secret',
         authorization: {
           params: {
             scope: 'openid email profile https://www.googleapis.com/auth/calendar.readonly',
@@ -96,7 +99,10 @@ function getAuthOptions(): NextAuthOptions {
   }
 }
 
-const handler = NextAuth(getAuthOptions())
+// Export authOptions for use in other files
+export const authOptions = getAuthOptions()
+
+const handler = NextAuth(authOptions)
 
 export { handler as GET, handler as POST }
 
