@@ -6,6 +6,7 @@ import { Calendar, Clock, Users, Video, Settings, LogOut } from 'lucide-react'
 import MeetingList from './MeetingList'
 import UpcomingMeetingCard from './UpcomingMeetingCard'
 import Link from 'next/link'
+import { showSuccess, showError, showInfo } from './Toast'
 
 export default function CalendarView() {
   const { data: session } = useSession()
@@ -90,7 +91,7 @@ export default function CalendarView() {
           await handleToggleNotetaker(event, enabled)
         }
       } else {
-        alert('Please sync your calendar first to enable notetaker for this meeting')
+        showInfo('Please sync your calendar first to enable notetaker for this meeting')
       }
     }
   }
@@ -100,18 +101,18 @@ export default function CalendarView() {
       const response = await fetch('/api/meetings/sync', { method: 'POST' })
       const data = await response.json()
       if (data.error) {
-        alert(`Error: ${data.error}`)
+        showError(`Error: ${data.error}`)
         console.error('Sync error:', data)
       } else if (data.meetings) {
-        alert(`Synced ${data.count} meetings`)
+        showSuccess(`Synced ${data.count} meetings`)
         fetchEvents()
         fetchMeetings()
       } else {
-        alert('No meetings synced. Check if you have calendar events.')
+        showInfo('No meetings synced. Check if you have calendar events.')
       }
     } catch (error) {
       console.error('Error syncing meetings:', error)
-      alert(`Failed to sync meetings: ${error}`)
+      showError(`Failed to sync meetings: ${error}`)
     }
   }
 
@@ -120,19 +121,19 @@ export default function CalendarView() {
       const response = await fetch('/api/recall/poll', { method: 'POST' })
       const data = await response.json()
       if (data.error) {
-        alert(`Error: ${data.error}`)
+        showError(`Error: ${data.error}`)
       } else {
         const updatedCount = data.count || 0
         if (updatedCount > 0) {
-          alert(`Checked ${updatedCount} meeting(s). ${data.updated?.filter((u: any) => u.hasTranscript).length || 0} transcript(s) available.`)
+          showSuccess(`Checked ${updatedCount} meeting(s). ${data.updated?.filter((u: any) => u.hasTranscript).length || 0} transcript(s) available.`)
           fetchMeetings()
         } else {
-          alert('No meetings to check. All transcripts are up to date or no meetings with bots found.')
+          showInfo('No meetings to check. All transcripts are up to date or no meetings with bots found.')
         }
       }
     } catch (error) {
       console.error('Error checking transcripts:', error)
-      alert(`Failed to check transcripts: ${error}`)
+      showError(`Failed to check transcripts: ${error}`)
     }
   }
 

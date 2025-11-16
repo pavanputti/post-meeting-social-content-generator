@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { format } from 'date-fns'
 import { X, Copy, Send, Loader2, ChevronDown, ChevronUp, Mail, FileText } from 'lucide-react'
 import { useSession } from 'next-auth/react'
+import { showSuccess, showError, showInfo } from './Toast'
 
 interface Meeting {
   id: string
@@ -45,6 +46,7 @@ export default function MeetingDetail({
   const [posting, setPosting] = useState(false)
   const [automations, setAutomations] = useState<Automation[]>([])
   const [selectedAutomation, setSelectedAutomation] = useState<string>('')
+  const [selectedPlatform, setSelectedPlatform] = useState<'linkedin' | 'facebook'>('linkedin')
   const [copied, setCopied] = useState(false)
   const [copiedEmail, setCopiedEmail] = useState(false)
   const [showTranscript, setShowTranscript] = useState(false)
@@ -80,7 +82,7 @@ export default function MeetingDetail({
 
   const handleGenerate = async () => {
     if (!meeting?.transcript) {
-      alert('No transcript available for this meeting')
+      showInfo('No transcript available for this meeting')
       return
     }
 
@@ -98,18 +100,18 @@ export default function MeetingDetail({
       const data = await response.json()
       
       if (!response.ok) {
-        alert(data.error || 'Failed to generate post')
+        showError(data.error || 'Failed to generate post')
         return
       }
       
       if (data.post) {
         setMeeting({ ...meeting, generatedPost: data.post })
       } else {
-        alert('No post was generated. Please try again.')
+        showError('No post was generated. Please try again.')
       }
     } catch (error) {
       console.error('Error generating post:', error)
-      alert('Failed to generate post. Please check your connection and try again.')
+      showError('Failed to generate post. Please check your connection and try again.')
     } finally {
       setGenerating(false)
     }
@@ -117,7 +119,7 @@ export default function MeetingDetail({
 
   const handleGenerateEmail = async () => {
     if (!meeting?.transcript) {
-      alert('No transcript available for this meeting')
+      showInfo('No transcript available for this meeting')
       return
     }
 
@@ -134,7 +136,7 @@ export default function MeetingDetail({
       const data = await response.json()
       
       if (!response.ok) {
-        alert(data.error || 'Failed to generate follow-up email')
+        showError(data.error || 'Failed to generate follow-up email')
         return
       }
       
@@ -142,11 +144,11 @@ export default function MeetingDetail({
         setMeeting({ ...meeting, followUpEmail: data.email })
         setShowEmail(true)
       } else {
-        alert('No email was generated. Please try again.')
+        showError('No email was generated. Please try again.')
       }
     } catch (error) {
       console.error('Error generating email:', error)
-      alert('Failed to generate follow-up email. Please check your connection and try again.')
+      showError('Failed to generate follow-up email. Please check your connection and try again.')
     } finally {
       setGeneratingEmail(false)
     }
@@ -183,7 +185,7 @@ export default function MeetingDetail({
     }
 
     if (!meeting?.generatedPost) {
-      alert('Please generate a post first')
+      showInfo('Please generate a post first')
       return
     }
 
@@ -211,7 +213,7 @@ export default function MeetingDetail({
       if (data.success) {
         await fetchMeeting()
         onUpdate()
-        alert(`Posted to ${platform}!`)
+        showSuccess(`Posted to ${platform}!`)
       } else {
         throw new Error(data.error || `Failed to post to ${platform}`)
       }
@@ -220,12 +222,15 @@ export default function MeetingDetail({
       const errorMessage = error.message || `Failed to post to ${platform}. Please check if your ${platform} account is connected in Settings.`
       
       if (errorMessage.includes('not connected') || errorMessage.includes('expired') || errorMessage.includes('reconnect')) {
-        const goToSettings = confirm(`${errorMessage}\n\nWould you like to go to Settings to reconnect?`)
-        if (goToSettings) {
-          window.location.href = '/settings'
-        }
+        showError(`${errorMessage}\n\nPlease go to Settings to reconnect.`)
+        // Optionally redirect after a delay
+        setTimeout(() => {
+          if (window.confirm('Would you like to go to Settings to reconnect?')) {
+            window.location.href = '/settings'
+          }
+        }, 2000)
       } else {
-        alert(errorMessage)
+        showError(errorMessage)
       }
     } finally {
       setPosting(false)
@@ -403,12 +408,12 @@ export default function MeetingDetail({
                       const data = await response.json()
                       if (data.updated?.some((u: any) => u.id === meeting.id && u.hasTranscript)) {
                         await fetchMeeting()
-                        alert('Transcript is now available!')
+                        showSuccess('Transcript is now available!')
                       } else {
-                        alert('Transcript not ready yet. Please try again in a few minutes.')
+                        showInfo('Transcript not ready yet. Please try again in a few minutes.')
                       }
                     } catch (error) {
-                      alert('Error checking for transcript')
+                      showError('Error checking for transcript')
                     }
                   }}
                   className="text-sm text-blue-600 hover:text-blue-800 underline"
@@ -420,25 +425,60 @@ export default function MeetingDetail({
 
             {meeting.transcript && !meeting.generatedPost && (
               <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">
-                  Select Automation (optional)
-                </label>
-                <select
-                  value={selectedAutomation}
-                  onChange={(e) => setSelectedAutomation(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 mb-4"
-                >
-                  <option value="">Default (LinkedIn post)</option>
-                  {linkedInAutomations.map((auto) => (
-                    <option key={auto.id} value={auto.id}>
-                      {auto.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Select Platform
+                    </label>
+                    <select
+                      value={selectedPlatform}
+                      onChange={(e) => {
+                        setSelectedPlatform(e.target.value as 'linkedin' | 'facebook')
+                        // Clear selected automation when platform changes
+                        setSelectedAutomation('')
+                      }}
+                      className="w-full border rounded-lg px-3 py-2"
+                    >
+                      <option value="linkedin">LinkedIn</option>
+                      <option value="facebook">Facebook</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Select Automation (optional)
+                    </label>
+                    <select
+                      value={selectedAutomation}
+                      onChange={(e) => setSelectedAutomation(e.target.value)}
+                      className="w-full border rounded-lg px-3 py-2"
+                    >
+                      <option value="">Default ({selectedPlatform} post)</option>
+                      {automations
+                        .filter(a => a.platform === selectedPlatform)
+                        .map((auto) => (
+                          <option key={auto.id} value={auto.id}>
+                            {auto.name}
+                          </option>
+                        ))}
+                    </select>
+                    {selectedAutomation && (
+                      <div className="mt-2 p-3 bg-gray-50 rounded-lg text-sm">
+                        <p className="font-medium mb-1">Description:</p>
+                        <p className="text-gray-700">{automations.find(a => a.id === selectedAutomation)?.description}</p>
+                        {automations.find(a => a.id === selectedAutomation)?.example && (
+                          <>
+                            <p className="font-medium mt-2 mb-1">Example:</p>
+                            <p className="text-gray-700 whitespace-pre-wrap">{automations.find(a => a.id === selectedAutomation)?.example}</p>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
                 <button
                   onClick={handleGenerate}
                   disabled={generating}
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 mt-4"
                 >
                   {generating ? (
                     <span className="flex items-center justify-center gap-2">

@@ -5,12 +5,12 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Save, Plus, Trash2, ArrowLeft } from 'lucide-react'
 import AutomationModal from './AutomationModal'
+import { showSuccess, showError, showInfo } from './Toast'
 
 interface UserSettings {
   botJoinMinutesBefore: number
   linkedInAccessToken: string | null
   facebookAccessToken: string | null
-  twitterAccessToken: string | null
 }
 
 interface Automation {
@@ -29,7 +29,6 @@ export default function SettingsClient() {
     botJoinMinutesBefore: 5,
     linkedInAccessToken: null,
     facebookAccessToken: null,
-    twitterAccessToken: null,
   })
   const [automations, setAutomations] = useState<Automation[]>([])
   const [loading, setLoading] = useState(true)
@@ -61,14 +60,14 @@ export default function SettingsClient() {
         errorMessage = 'Security validation failed. Please try connecting again.'
       }
       
-      alert(errorMessage)
+      showError(errorMessage)
       // Clean up URL
       window.history.replaceState({}, '', '/settings')
     }
     
     const success = urlParams.get('success')
     if (success === 'linkedin_connected') {
-      alert('LinkedIn connected successfully!')
+      showSuccess('LinkedIn connected successfully!')
       window.history.replaceState({}, '', '/settings')
       fetchSettings() // Refresh settings
     }
@@ -108,13 +107,13 @@ export default function SettingsClient() {
       })
 
       if (response.ok) {
-        alert('Settings saved!')
+        showSuccess('Settings saved!')
       } else {
-        alert('Failed to save settings')
+        showError('Failed to save settings')
       }
     } catch (error) {
       console.error('Error saving settings:', error)
-      alert('Failed to save settings')
+      showError('Failed to save settings')
     } finally {
       setSaving(false)
     }
@@ -130,10 +129,6 @@ export default function SettingsClient() {
     window.location.href = '/api/auth/facebook'
   }
 
-  const handleConnectTwitter = () => {
-    // Redirect to Twitter OAuth
-    window.location.href = '/api/auth/twitter'
-  }
 
   const handleDeleteAutomation = async (id: string) => {
     if (!confirm('Are you sure you want to delete this automation?')) return
@@ -146,11 +141,11 @@ export default function SettingsClient() {
       if (response.ok) {
         fetchAutomations()
       } else {
-        alert('Failed to delete automation')
+        showError('Failed to delete automation')
       }
     } catch (error) {
       console.error('Error deleting automation:', error)
-      alert('Failed to delete automation')
+      showError('Failed to delete automation')
     }
   }
 
@@ -230,32 +225,12 @@ export default function SettingsClient() {
                 <p className="text-sm text-gray-600">
                   {settings.facebookAccessToken ? 'Connected' : 'Not connected'}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Requires Facebook Developer account
-                </p>
               </div>
               <button
                 onClick={handleConnectFacebook}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 {settings.facebookAccessToken ? 'Reconnect' : 'Connect'}
-              </button>
-            </div>
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="font-medium">Twitter/X</h3>
-                <p className="text-sm text-gray-600">
-                  {settings.twitterAccessToken ? 'Connected' : 'Not connected'}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Requires Twitter Developer account (may require paid API)
-                </p>
-              </div>
-              <button
-                onClick={handleConnectTwitter}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-              >
-                {settings.twitterAccessToken ? 'Reconnect' : 'Connect'}
               </button>
             </div>
           </div>

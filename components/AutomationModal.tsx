@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Save } from 'lucide-react'
+import { X, Save, Loader2, Sparkles } from 'lucide-react'
+import { showSuccess, showError, showInfo } from './Toast'
 
 interface Automation {
   id: string
@@ -29,6 +30,7 @@ export default function AutomationModal({
     example: '',
   })
   const [saving, setSaving] = useState(false)
+  const [generatingExample, setGeneratingExample] = useState(false)
 
   useEffect(() => {
     if (automation) {
@@ -58,15 +60,53 @@ export default function AutomationModal({
       })
 
       if (response.ok) {
+        showSuccess(automation ? 'Automation updated successfully!' : 'Automation created successfully!')
         onSave()
       } else {
-        alert('Failed to save automation')
+        showError('Failed to save automation')
       }
     } catch (error) {
       console.error('Error saving automation:', error)
-      alert('Failed to save automation')
+      showError('Failed to save automation')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleGenerateExample = async () => {
+    if (!formData.description.trim()) {
+      showInfo('Please enter a description first')
+      return
+    }
+
+    try {
+      setGeneratingExample(true)
+      const response = await fetch('/api/automations/generate-example', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: formData.description,
+          platform: formData.platform,
+        }),
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate example')
+      }
+
+      if (data.example) {
+        setFormData({ ...formData, example: data.example })
+        showSuccess('Example generated successfully!')
+      } else {
+        showError('No example was generated. Please try again.')
+      }
+    } catch (error: any) {
+      console.error('Error generating example:', error)
+      showError(error.message || 'Failed to generate example')
+    } finally {
+      setGeneratingExample(false)
     }
   }
 
@@ -129,12 +169,32 @@ export default function AutomationModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Example</label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium">Example</label>
+              <button
+                type="button"
+                onClick={handleGenerateExample}
+                disabled={generatingExample || !formData.description.trim()}
+                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {generatingExample ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3 h-3" />
+                    Generate Example
+                  </>
+                )}
+              </button>
+            </div>
             <textarea
               value={formData.example}
               onChange={(e) => setFormData({ ...formData, example: e.target.value })}
               className="w-full border rounded-lg px-3 py-2 min-h-[120px]"
-              placeholder="Example output..."
+              placeholder="Click 'Generate Example' to create a sample output based on your description, or enter your own example..."
             />
           </div>
 

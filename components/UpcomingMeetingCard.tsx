@@ -85,17 +85,32 @@ export default function UpcomingMeetingCard({
             )}
           </div>
           <div className="flex flex-wrap gap-4 text-gray-600 mt-3">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              <span>{format(new Date(event.start.dateTime), 'MMM d, yyyy')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              <span>
-                {format(new Date(event.start.dateTime), 'h:mm a')} -{' '}
-                {format(new Date(event.end?.dateTime || event.start.dateTime), 'h:mm a')}
-              </span>
-            </div>
+            {event.start?.dateTime ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  <span>{format(new Date(event.start.dateTime), 'MMM d, yyyy')}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  <span>
+                    {format(new Date(event.start.dateTime), 'h:mm a')} -{' '}
+                    {format(new Date(event.end?.dateTime || event.start.dateTime), 'h:mm a')}
+                  </span>
+                </div>
+              </>
+            ) : event.start?.date ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  <span>{format(new Date(event.start.date), 'MMM d, yyyy')}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  <span>All day</span>
+                </div>
+              </>
+            ) : null}
             {event.attendees && event.attendees.length > 0 && (
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
