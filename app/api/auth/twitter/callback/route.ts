@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from '@/lib/prisma'
 import axios from 'axios'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -11,18 +13,20 @@ export async function GET(request: NextRequest) {
     const state = searchParams.get('state')
     const error = searchParams.get('error')
 
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+
     if (error) {
-      return NextResponse.redirect('/settings?error=twitter_auth_failed')
+      return NextResponse.redirect(`${baseUrl}/settings?error=twitter_auth_failed`)
     }
 
     if (!code || !state) {
-      return NextResponse.redirect('/settings?error=missing_params')
+      return NextResponse.redirect(`${baseUrl}/settings?error=missing_params`)
     }
 
     // Verify state matches user ID
     const session = await getServerSession(authOptions)
     if (!session?.user?.id || session.user.id !== state) {
-      return NextResponse.redirect('/settings?error=invalid_state')
+      return NextResponse.redirect(`${baseUrl}/settings?error=invalid_state`)
     }
 
     // Exchange code for access token
@@ -69,10 +73,11 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    return NextResponse.redirect('/settings?success=twitter_connected')
+    return NextResponse.redirect(`${baseUrl}/settings?success=twitter_connected`)
   } catch (error) {
     console.error('Twitter OAuth error:', error)
-    return NextResponse.redirect('/settings?error=twitter_auth_failed')
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+    return NextResponse.redirect(`${baseUrl}/settings?error=twitter_auth_failed`)
   }
 }
 
