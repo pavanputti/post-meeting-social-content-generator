@@ -120,7 +120,6 @@ export async function GET(request: NextRequest) {
           accessToken: page.access_token,
           category: page.category || null,
         })),
-        skipDuplicates: true,
       })
 
       // Auto-select first page if none selected
