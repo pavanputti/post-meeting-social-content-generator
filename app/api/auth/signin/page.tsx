@@ -45,7 +45,7 @@ export default function SignIn() {
                   You must check the calendar permission checkbox on the next screen!
                 </p>
                 <p className="text-yellow-700 text-sm">
-                  On the Google consent screen, you'll see a checkbox for calendar access. 
+                  On the Google consent screen, you&apos;ll see a checkbox for calendar access. 
                   <strong className="font-semibold"> Please make sure to check it</strong> so the app can access your calendar events.
                 </p>
               </div>
@@ -55,10 +55,10 @@ export default function SignIn() {
           <div className="space-y-4 mb-6">
             <h2 className="text-xl font-semibold">What to do:</h2>
             <ol className="list-decimal list-inside space-y-2 text-gray-700">
-              <li>You'll be redirected to Google's consent screen</li>
-              <li>Look for the checkbox: <strong>"See and download any calendar you can access using your Google Calendar"</strong></li>
+              <li>You&apos;ll be redirected to Google&apos;s consent screen</li>
+              <li>Look for the checkbox: <strong>&quot;See and download any calendar you can access using your Google Calendar&quot;</strong></li>
               <li><strong className="text-blue-600">Check the checkbox</strong> to grant calendar access</li>
-              <li>Click "Continue" to complete sign-in</li>
+              <li>Click &quot;Continue&quot; to complete sign-in</li>
             </ol>
           </div>
 
@@ -67,7 +67,7 @@ export default function SignIn() {
               <CheckCircle2 className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="text-blue-800 text-sm">
-                  <strong>Note:</strong> You may see an "unverified app" warning. This is normal for development apps. 
+                  <strong>Note:</strong> You may see an &quot;unverified app&quot; warning. This is normal for development apps. 
                   You can safely proceed if you trust this application.
                 </p>
               </div>
@@ -123,7 +123,7 @@ export default function SignIn() {
         
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <p className="text-sm text-blue-800">
-            <strong>⚠️ Important:</strong> You'll need to grant calendar access on the next screen. 
+            <strong>⚠️ Important:</strong> You&apos;ll need to grant calendar access on the next screen. 
             Make sure to check the calendar permission checkbox!
           </p>
         </div>

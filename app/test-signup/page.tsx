@@ -133,9 +133,9 @@ export default function TestSignUpPage() {
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4 text-yellow-800">Testing Instructions</h2>
           <ol className="list-decimal list-inside space-y-2 text-yellow-900">
-            <li>If you're signed in, click "Delete My Account" to remove your test account</li>
-            <li>You'll be automatically signed out and redirected to the sign-in page</li>
-            <li>Click "Sign in with Google" to test the first sign-up flow</li>
+            <li>If you&apos;re signed in, click &quot;Delete My Account&quot; to remove your test account</li>
+            <li>You&apos;ll be automatically signed out and redirected to the sign-in page</li>
+            <li>Click &quot;Sign in with Google&quot; to test the first sign-up flow</li>
             <li>You should see the Google consent screen with permission checkboxes</li>
             <li>Make sure to check the calendar permission checkbox</li>
             <li>After signing in, verify that calendar events are being fetched</li>
@@ -144,7 +144,7 @@ export default function TestSignUpPage() {
             <p className="font-semibold text-yellow-800">⚠️ Important:</p>
             <p className="text-yellow-900 text-sm">
               This test endpoint only works in development mode. In production, 
-              you'll need to manually delete test accounts from the database.
+              you&apos;ll need to manually delete test accounts from the database.
             </p>
           </div>
         </div>
