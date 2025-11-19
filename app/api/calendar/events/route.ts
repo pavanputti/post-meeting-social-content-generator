@@ -26,11 +26,25 @@ export async function GET(request: NextRequest) {
 
     for (const account of googleAccounts) {
       try {
+        // Verify access token exists
+        if (!account.accessToken) {
+          console.error(`No access token for account ${account.email}`)
+          continue
+        }
+        
+        // Check if token is expired
+        if (account.expiresAt && new Date(account.expiresAt) < new Date()) {
+          console.warn(`Access token expired for account ${account.email}. Refresh token needed.`)
+          // Continue anyway - might still work
+        }
+        
         const events = await getCalendarEvents(
           account.accessToken,
           timeMin ? new Date(timeMin) : undefined,
           timeMax ? new Date(timeMax) : undefined
         )
+        
+        console.log(`Fetched ${events.length} events for account ${account.email}`)
         
         // Map events and add account info
         const mappedEvents = events.map((event: any) => ({
@@ -40,8 +54,15 @@ export async function GET(request: NextRequest) {
         }))
         
         allEvents.push(...mappedEvents)
-      } catch (error) {
+      } catch (error: any) {
         console.error(`Error fetching events for account ${account.email}:`, error)
+        // Log more details about the error
+        if (error.response) {
+          console.error(`Google API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`)
+          if (error.response.status === 403) {
+            console.error(`Calendar access denied for ${account.email}. User may need to grant calendar permissions.`)
+          }
+        }
       }
     }
 

@@ -16,6 +16,9 @@ function getAuthOptions(): NextAuthOptions {
         authorization: {
           params: {
             scope: 'openid email profile https://www.googleapis.com/auth/calendar.readonly',
+            access_type: 'offline',
+            prompt: 'select_account consent', // Force account selection and showing permission checkboxes
+            include_granted_scopes: 'true', // Include previously granted scopes
           },
         },
       }),
@@ -34,7 +37,29 @@ function getAuthOptions(): NextAuthOptions {
         }
 
         if (account?.provider === 'google' && account.access_token && user.email) {
-          // Save or update Google account
+          // Verify calendar permissions were granted
+          const calendarScope = 'https://www.googleapis.com/auth/calendar.readonly'
+          const grantedScopes = account.scope || ''
+          const hasCalendarAccess = grantedScopes.includes(calendarScope)
+          
+          console.log('Sign-in callback - Account data:', {
+            email: user.email,
+            userId: user.id,
+            hasAccessToken: !!account.access_token,
+            hasRefreshToken: !!account.refresh_token,
+            grantedScopes: grantedScopes,
+            hasCalendarAccess,
+          })
+          
+          if (!hasCalendarAccess) {
+            console.warn('Warning: Calendar permissions not granted for user:', user.email, 'Granted scopes:', grantedScopes)
+            console.warn('The account will still be saved, but calendar access may be limited.')
+          } else {
+            console.log('Calendar permissions confirmed for user:', user.email)
+          }
+
+          // Save or update Google account - ALWAYS save even if calendar permissions aren't explicitly shown
+          // Google might grant permissions implicitly for unverified apps
           try {
             console.log('Saving Google account for user:', user.email, 'User ID:', user.id)
             
@@ -43,7 +68,7 @@ function getAuthOptions(): NextAuthOptions {
               : null
 
             // Use upsert to handle both create and update
-            await prisma.googleAccount.upsert({
+            const savedAccount = await prisma.googleAccount.upsert({
               where: {
                 userId_email: {
                   userId: user.id,
@@ -64,16 +89,27 @@ function getAuthOptions(): NextAuthOptions {
               },
             })
             
-            console.log('Successfully saved Google account')
-          } catch (error) {
+            console.log('Successfully saved Google account:', {
+              accountId: savedAccount.id,
+              email: savedAccount.email,
+              userId: savedAccount.userId,
+            })
+          } catch (error: any) {
             console.error('Error saving Google account:', error)
+            console.error('Error details:', {
+              message: error.message,
+              code: error.code,
+              meta: error.meta,
+            })
             // Don't block sign-in if saving fails, but log it
+            // The account might still work for basic auth
           }
         } else {
-          console.log('Missing account data:', {
+          console.error('Missing account data during sign-in:', {
             provider: account?.provider,
             hasAccessToken: !!account?.access_token,
             userEmail: user.email,
+            userId: user.id,
           })
         }
         return true

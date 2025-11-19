@@ -85,6 +85,19 @@ export default function SettingsClient() {
         errorMessage = 'Security validation failed. Please try connecting again.'
       } else if (error === 'no_email') {
         errorMessage = 'Could not retrieve email from Google account. Please try again.'
+      } else if (error === 'no_session') {
+        errorMessage = 'Your session expired. Please sign in again and try connecting your Google account.'
+      } else if (error === 'token_exchange_failed') {
+        errorMessage = 'Failed to exchange authorization code. Please try again.'
+      } else if (error === 'no_access_token') {
+        errorMessage = 'Failed to receive access token from Google. Please try again.'
+      } else if (error === 'user_info_failed') {
+        errorMessage = 'Failed to retrieve user information from Google. Please try again.'
+      } else if (error === 'database_error') {
+        errorMessage = 'Failed to save Google account. Please try again.'
+      } else if (error === 'email_already_linked') {
+        const messageParam = urlParams.get('message')
+        errorMessage = messageParam ? decodeURIComponent(messageParam) : 'This email is already linked to another account.'
       } else if (error === 'facebook_not_configured') {
         errorMessage = 'Facebook is not configured. Please add FACEBOOK_CLIENT_ID to your .env file and restart the server.'
       } else if (error === 'facebook_auth_failed') {
@@ -287,6 +300,12 @@ export default function SettingsClient() {
           Back to Home
         </button>
         <h1 className="text-3xl font-bold">Settings</h1>
+        <a
+          href="/test-signup"
+          className="ml-auto px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
+        >
+          🧪 Test First Sign-Up
+        </a>
       </div>
 
       <div className="space-y-8">

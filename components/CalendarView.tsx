@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { showSuccess, showError, showInfo } from './Toast'
 
 export default function CalendarView() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const [events, setEvents] = useState<any[]>([])
   const [meetings, setMeetings] = useState<any[]>([])
   const [googleAccounts, setGoogleAccounts] = useState<any[]>([])
@@ -17,20 +17,54 @@ export default function CalendarView() {
   const [showPast, setShowPast] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchGoogleAccounts = useCallback(async () => {
+  const fetchGoogleAccounts = useCallback(async (retryCount = 0) => {
     try {
       const response = await fetch('/api/google-accounts')
+      if (!response.ok) {
+        throw new Error('Failed to fetch Google accounts')
+      }
       const data = await response.json()
-      setGoogleAccounts(data.accounts || [])
+      const accounts = data.accounts || []
+      setGoogleAccounts(accounts)
+      
+      console.log(`Fetched ${accounts.length} Google account(s) (attempt ${retryCount + 1})`)
+      
+      // If no accounts found and this is first load, retry after a delay
+      // This handles race condition where account is being saved during sign-in
+      if (accounts.length === 0 && retryCount < 5 && status === 'authenticated') {
+        const delay = retryCount === 0 ? 3000 : 2000 * (retryCount + 1) // First retry after 3s, then 4s, 6s, 8s, 10s
+        console.log(`No Google accounts found, retrying in ${delay}ms... (attempt ${retryCount + 1}/5)`)
+        setTimeout(() => {
+          fetchGoogleAccounts(retryCount + 1)
+        }, delay)
+      } else if (accounts.length > 0) {
+        // Accounts found, trigger events fetch
+        console.log('Google accounts found, fetching events...')
+      }
     } catch (error) {
       console.error('Error fetching Google accounts:', error)
+      // Retry on error too
+      if (retryCount < 5 && status === 'authenticated') {
+        const delay = retryCount === 0 ? 3000 : 2000 * (retryCount + 1)
+        setTimeout(() => {
+          fetchGoogleAccounts(retryCount + 1)
+        }, delay)
+      }
     }
-  }, [])
+  }, [status])
 
-  const fetchEvents = useCallback(async () => {
+  const fetchEvents = useCallback(async (retryCount = 0) => {
     try {
       setLoading(true)
       setError(null)
+      
+      // Don't try to fetch events if we have no accounts yet (unless we've already retried)
+      if (googleAccounts.length === 0 && retryCount === 0) {
+        console.log('No Google accounts available yet, waiting...')
+        setLoading(false)
+        return
+      }
+      
       const now = new Date()
       const timeMin = showPast ? undefined : now.toISOString()
       const timeMax = showPast ? now.toISOString() : undefined
@@ -41,7 +75,8 @@ export default function CalendarView() {
 
       const response = await fetch(`/api/calendar/events?${params}`)
       if (!response.ok) {
-        throw new Error('Failed to fetch calendar events')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to fetch calendar events')
       }
       const data = await response.json()
       
@@ -52,14 +87,32 @@ export default function CalendarView() {
         return new Date(aTime).getTime() - new Date(bTime).getTime()
       })
       
+      console.log(`Fetched ${sortedEvents.length} calendar event(s)`)
       setEvents(sortedEvents)
-    } catch (error) {
+      
+      // If we have accounts but no events, and this is first attempt, retry once
+      if (googleAccounts.length > 0 && sortedEvents.length === 0 && retryCount === 0) {
+        console.log('Accounts found but no events, retrying once...')
+        setTimeout(() => {
+          fetchEvents(1)
+        }, 2000)
+      }
+    } catch (error: any) {
       console.error('Error fetching events:', error)
-      setError('Failed to load calendar events. Please try again.')
+      const errorMessage = error.message || 'Failed to load calendar events. Please try again.'
+      setError(errorMessage)
+      
+      // Retry once on error if we have accounts
+      if (googleAccounts.length > 0 && retryCount === 0) {
+        console.log('Error fetching events, retrying once...')
+        setTimeout(() => {
+          fetchEvents(1)
+        }, 3000)
+      }
     } finally {
       setLoading(false)
     }
-  }, [showPast])
+  }, [showPast, googleAccounts.length])
 
   const fetchMeetings = useCallback(async () => {
     try {
@@ -72,14 +125,34 @@ export default function CalendarView() {
   }, [])
 
   useEffect(() => {
-    if (session) {
-      fetchGoogleAccounts()
-      fetchEvents()
-      if (!showPast) {
-        fetchMeetings()
-      }
+    // Wait for session to be fully authenticated before fetching data
+    if (status === 'authenticated' && session) {
+      // Add initial delay to allow account to be saved after sign-in
+      const initialDelay = 2000 // 2 seconds initial delay
+      console.log('Session authenticated, starting data fetch after delay...')
+      
+      setTimeout(() => {
+        fetchGoogleAccounts()
+        // Fetch events after accounts are loaded (or after delay)
+        setTimeout(() => {
+          fetchEvents()
+        }, 1000)
+        if (!showPast) {
+          fetchMeetings()
+        }
+      }, initialDelay)
+    } else if (status === 'unauthenticated') {
+      setLoading(false)
     }
-  }, [session, showPast, fetchEvents, fetchMeetings, fetchGoogleAccounts])
+  }, [status, session, showPast, fetchEvents, fetchMeetings, fetchGoogleAccounts])
+  
+  // Also fetch events when accounts change
+  useEffect(() => {
+    if (googleAccounts.length > 0 && status === 'authenticated') {
+      console.log('Google accounts updated, fetching events...')
+      fetchEvents()
+    }
+  }, [googleAccounts.length, status, fetchEvents])
 
   const handleToggleNotetaker = async (event: any, enabled: boolean) => {
     // Find meeting for this event
