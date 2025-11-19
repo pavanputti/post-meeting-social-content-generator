@@ -293,8 +293,13 @@ export async function POST(
           where: { userId: session.user.id },
         })
 
-        // Post to LinkedIn if connected and not already posted
-        if (settings?.linkedInAccessToken && !meeting.postedToLinkedIn) {
+        // Determine which platforms to post to based on platform parameter
+        const platform = body.platform || 'all'
+        const shouldPostToLinkedIn = (platform === 'all' || platform === 'linkedin') && settings?.linkedInAccessToken && !meeting.postedToLinkedIn
+        const shouldPostToFacebook = (platform === 'all' || platform === 'facebook') && settings?.facebookAccessToken && !meeting.postedToFacebook
+
+        // Post to LinkedIn if requested, connected, and not already posted
+        if (shouldPostToLinkedIn) {
           try {
             const success = await postToLinkedIn(session.user.id, meeting.generatedPost)
             if (success) {
@@ -309,8 +314,8 @@ export async function POST(
           }
         }
 
-        // Post to Facebook if connected and not already posted
-        if (settings?.facebookAccessToken && !meeting.postedToFacebook) {
+        // Post to Facebook if requested, connected, and not already posted
+        if (shouldPostToFacebook) {
           try {
             const success = await postToFacebook(session.user.id, meeting.generatedPost)
             if (success) {
@@ -344,8 +349,9 @@ export async function POST(
               { status: 400 }
             )
           } else {
+            const platformName = platform === 'linkedin' ? 'LinkedIn' : platform === 'facebook' ? 'Facebook' : 'social media'
             return NextResponse.json(
-              { error: 'No social media accounts connected. Please connect at least one account in Settings.' },
+              { error: `${platformName} account is not connected. Please connect your ${platformName} account in Settings.` },
               { status: 400 }
             )
           }

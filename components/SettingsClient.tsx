@@ -64,7 +64,8 @@ export default function SettingsClient() {
     const urlParams = new URLSearchParams(window.location.search)
     const error = urlParams.get('error')
     if (error) {
-      let errorMessage = 'Authentication failed. Please try again.'
+      console.log('Authentication error detected:', error) // Debug log
+      let errorMessage = `Authentication failed (${error}). Please try again.`
       
       if (error === 'linkedin_not_configured') {
         errorMessage = 'LinkedIn is not configured. Please add LINKEDIN_CLIENT_ID to your .env file and restart the server.'
@@ -84,6 +85,18 @@ export default function SettingsClient() {
         errorMessage = 'Security validation failed. Please try connecting again.'
       } else if (error === 'no_email') {
         errorMessage = 'Could not retrieve email from Google account. Please try again.'
+      } else if (error === 'facebook_not_configured') {
+        errorMessage = 'Facebook is not configured. Please add FACEBOOK_CLIENT_ID to your .env file and restart the server.'
+      } else if (error === 'facebook_auth_failed') {
+        errorMessage = 'Facebook authentication failed. Please try again.'
+      } else if (error === 'facebook_invalid_token') {
+        errorMessage = 'Facebook access token expired or invalid. Please reconnect your Facebook account.'
+      } else if (error === 'facebook_permission_denied') {
+        errorMessage = 'Facebook permission denied. Please make sure you grant all requested permissions when connecting.'
+      } else if (error === 'facebook_redirect_mismatch') {
+        errorMessage = 'Facebook redirect URI mismatch. Please check your redirect URI in Facebook app settings matches: ' + (process.env.NEXTAUTH_URL || 'http://localhost:3000') + '/api/auth/facebook/callback'
+      } else if (error === 'nextauth_not_configured') {
+        errorMessage = 'NEXTAUTH_URL is not configured. Please add NEXTAUTH_URL to your .env file and restart the server.'
       }
       
       showError(errorMessage)

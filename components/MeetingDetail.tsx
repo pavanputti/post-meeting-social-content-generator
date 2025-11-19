@@ -43,7 +43,8 @@ export default function MeetingDetail({
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [generatingEmail, setGeneratingEmail] = useState(false)
-  const [posting, setPosting] = useState(false)
+  const [postingLinkedIn, setPostingLinkedIn] = useState(false)
+  const [postingFacebook, setPostingFacebook] = useState(false)
   const [automations, setAutomations] = useState<Automation[]>([])
   const [selectedAutomation, setSelectedAutomation] = useState<string>('')
   const [selectedPlatform, setSelectedPlatform] = useState<'linkedin' | 'facebook'>('linkedin')
@@ -178,47 +179,67 @@ export default function MeetingDetail({
     }
   }
 
-  const handlePost = async (e: React.MouseEvent) => {
+  const handlePost = async (platform: 'linkedin' | 'facebook', e: React.MouseEvent) => {
     e.preventDefault()
     if (!meeting?.generatedPost) {
       showInfo('Please generate a post first')
       return
     }
 
-    if (posting) {
+    // Check if already posted to this platform
+    if (platform === 'linkedin' && meeting.postedToLinkedIn) {
+      showInfo('Already posted to LinkedIn')
+      return
+    }
+    if (platform === 'facebook' && meeting.postedToFacebook) {
+      showInfo('Already posted to Facebook')
+      return
+    }
+
+    // Check if currently posting to this platform
+    if (platform === 'linkedin' && postingLinkedIn) {
+      return
+    }
+    if (platform === 'facebook' && postingFacebook) {
       return
     }
 
     try {
-      setPosting(true)
+      if (platform === 'linkedin') {
+        setPostingLinkedIn(true)
+      } else {
+        setPostingFacebook(true)
+      }
       const response = await fetch(`/api/meetings/${meetingId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'post',
-          platform: 'all', // Post to all configured platforms
+          platform: platform,
         }),
       })
 
       const data = await response.json()
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to post to social media')
+        throw new Error(data.error || `Failed to post to ${platform === 'linkedin' ? 'LinkedIn' : 'Facebook'}`)
       }
 
       if (data.success) {
         await fetchMeeting()
         onUpdate()
-        const platformsPosted = []
-        if (data.postedToLinkedIn) platformsPosted.push('LinkedIn')
-        if (data.postedToFacebook) platformsPosted.push('Facebook')
-        showSuccess(`Posted to ${platformsPosted.join(' and ')}!`)
+        const platformName = platform === 'linkedin' ? 'LinkedIn' : 'Facebook'
+        if (data.postedToLinkedIn || data.postedToFacebook) {
+          showSuccess(`Posted to ${platformName}!`)
+        } else {
+          throw new Error(`Failed to post to ${platformName}`)
+        }
       } else {
-        throw new Error(data.error || 'Failed to post to social media')
+        throw new Error(data.error || `Failed to post to ${platform === 'linkedin' ? 'LinkedIn' : 'Facebook'}`)
       }
     } catch (error: any) {
-      console.error('Error posting:', error)
-      const errorMessage = error.message || 'Failed to post to social media. Please check if your accounts are connected in Settings.'
+      console.error(`Error posting to ${platform}:`, error)
+      const errorMessage = error.message || `Failed to post to ${platform === 'linkedin' ? 'LinkedIn' : 'Facebook'}. Please check if your account is connected in Settings.`
       
       if (errorMessage.includes('not connected') || errorMessage.includes('expired') || errorMessage.includes('reconnect')) {
         showError(`${errorMessage}\n\nPlease go to Settings to reconnect.`)
@@ -232,7 +253,11 @@ export default function MeetingDetail({
         showError(errorMessage)
       }
     } finally {
-      setPosting(false)
+      if (platform === 'linkedin') {
+        setPostingLinkedIn(false)
+      } else {
+        setPostingFacebook(false)
+      }
     }
   }
 
@@ -517,19 +542,34 @@ export default function MeetingDetail({
                   >
                     Cancel
                   </button>
-                  {(!meeting.postedToLinkedIn || !meeting.postedToFacebook) && (
+                  {!meeting.postedToLinkedIn && (
                     <button
-                      onClick={handlePost}
-                      disabled={posting}
+                      onClick={(e) => handlePost('linkedin', e)}
+                      disabled={postingLinkedIn}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
                       type="button"
                     >
-                      {posting ? (
+                      {postingLinkedIn ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <Send className="w-4 h-4" />
                       )}
-                      Post
+                      Post to LinkedIn
+                    </button>
+                  )}
+                  {!meeting.postedToFacebook && (
+                    <button
+                      onClick={(e) => handlePost('facebook', e)}
+                      disabled={postingFacebook}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                      type="button"
+                    >
+                      {postingFacebook ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
+                      Post to Facebook
                     </button>
                   )}
                 </div>
