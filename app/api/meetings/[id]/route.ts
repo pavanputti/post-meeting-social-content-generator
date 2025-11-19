@@ -278,62 +278,77 @@ export async function POST(
         )
       }
 
-      if (!platform) {
-        return NextResponse.json(
-          { error: 'Platform not specified' },
-          { status: 400 }
-        )
-      }
-
       try {
         const { postToLinkedIn, postToFacebook } = await import('@/lib/social-media')
         
-        let success = false
-        let errorMessage = ''
         const updateData: any = {}
+        const results: any = {
+          postedToLinkedIn: false,
+          postedToFacebook: false,
+        }
+        const errors: string[] = []
 
-        if (platform === 'linkedin') {
+        // Check user settings to see which platforms are connected
+        const settings = await prisma.userSettings.findUnique({
+          where: { userId: session.user.id },
+        })
+
+        // Post to LinkedIn if connected and not already posted
+        if (settings?.linkedInAccessToken && !meeting.postedToLinkedIn) {
           try {
-            success = await postToLinkedIn(session.user.id, meeting.generatedPost)
+            const success = await postToLinkedIn(session.user.id, meeting.generatedPost)
             if (success) {
               updateData.postedToLinkedIn = true
+              results.postedToLinkedIn = true
             } else {
-              errorMessage = 'Failed to post to LinkedIn. Please check if your LinkedIn account is connected in Settings.'
+              errors.push('Failed to post to LinkedIn')
             }
           } catch (error: any) {
             console.error('LinkedIn posting error:', error)
-            errorMessage = error.message || 'LinkedIn not connected. Please connect your LinkedIn account in Settings.'
+            errors.push(`LinkedIn: ${error.message || 'Posting failed'}`)
           }
-        } else if (platform === 'facebook') {
+        }
+
+        // Post to Facebook if connected and not already posted
+        if (settings?.facebookAccessToken && !meeting.postedToFacebook) {
           try {
-            success = await postToFacebook(session.user.id, meeting.generatedPost)
+            const success = await postToFacebook(session.user.id, meeting.generatedPost)
             if (success) {
               updateData.postedToFacebook = true
+              results.postedToFacebook = true
             } else {
-              errorMessage = 'Failed to post to Facebook. Please check if your Facebook account is connected in Settings.'
+              errors.push('Failed to post to Facebook')
             }
           } catch (error: any) {
             console.error('Facebook posting error:', error)
-            errorMessage = error.message || 'Facebook not connected. Please connect your Facebook account in Settings.'
+            errors.push(`Facebook: ${error.message || 'Posting failed'}`)
           }
-        } else {
-          return NextResponse.json(
-            { error: `Invalid platform: ${platform}` },
-            { status: 400 }
-          )
         }
 
-        if (success) {
+        // If at least one platform was posted successfully, update the meeting
+        if (results.postedToLinkedIn || results.postedToFacebook) {
           await prisma.meeting.update({
             where: { id: meeting.id },
             data: updateData,
           })
-          return NextResponse.json({ success: true })
+          return NextResponse.json({ 
+            success: true,
+            ...results,
+            errors: errors.length > 0 ? errors : undefined,
+          })
         } else {
-          return NextResponse.json(
-            { error: errorMessage || 'Failed to post to social media' },
-            { status: 400 }
-          )
+          // No platforms were posted to
+          if (errors.length > 0) {
+            return NextResponse.json(
+              { error: errors.join('; ') },
+              { status: 400 }
+            )
+          } else {
+            return NextResponse.json(
+              { error: 'No social media accounts connected. Please connect at least one account in Settings.' },
+              { status: 400 }
+            )
+          }
         }
       } catch (error: any) {
         console.error('Error in post action:', error)

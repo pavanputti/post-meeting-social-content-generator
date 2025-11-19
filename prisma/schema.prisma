@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -86,13 +86,13 @@ model Meeting {
   startTime        DateTime
   endTime          DateTime
   meetingLink      String?
-  platform         String? // "zoom", "teams", "google-meet"
+  platform         String?
   recallBotId      String?
-  recallBotStatus  String? // "scheduled", "joined", "completed", "failed"
+  recallBotStatus  String?
   transcript       String?
   transcriptUrl    String?
   notetakerEnabled Boolean       @default(false)
-  attendees        String // JSON array of attendee emails/names
+  attendees        String
   generatedPost    String?
   followUpEmail    String?
   postedToLinkedIn Boolean       @default(false)
@@ -108,8 +108,8 @@ model Automation {
   id          String   @id @default(cuid())
   userId      String
   name        String
-  type        String // "Generate post"
-  platform    String // "linkedin", "facebook"
+  type        String
+  platform    String
   description String
   example     String?
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -120,16 +120,32 @@ model Automation {
 }
 
 model UserSettings {
-  id                       String   @id @default(cuid())
-  userId                   String   @unique
-  botJoinMinutesBefore     Int      @default(5)
+  id                       String         @id @default(cuid())
+  userId                   String         @unique
+  botJoinMinutesBefore     Int            @default(5)
   linkedInAccessToken      String?
   linkedInRefreshToken     String?
   facebookAccessToken      String?
   facebookRefreshToken     String?
+  facebookSelectedPageId   String?
   twitterAccessToken       String?
   twitterAccessTokenSecret String?
-  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
+  user                     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  facebookPages            FacebookPage[]
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
+}
+
+model FacebookPage {
+  id           String        @id @default(cuid())
+  userId       String
+  pageId       String
+  pageName     String
+  accessToken  String
+  category     String?
+  userSettings UserSettings? @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([userId, pageId])
 }

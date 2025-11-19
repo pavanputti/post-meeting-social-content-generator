@@ -12,12 +12,25 @@ export default function CalendarView() {
   const { data: session } = useSession()
   const [events, setEvents] = useState<any[]>([])
   const [meetings, setMeetings] = useState<any[]>([])
+  const [googleAccounts, setGoogleAccounts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showPast, setShowPast] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchGoogleAccounts = useCallback(async () => {
+    try {
+      const response = await fetch('/api/google-accounts')
+      const data = await response.json()
+      setGoogleAccounts(data.accounts || [])
+    } catch (error) {
+      console.error('Error fetching Google accounts:', error)
+    }
+  }, [])
 
   const fetchEvents = useCallback(async () => {
     try {
       setLoading(true)
+      setError(null)
       const now = new Date()
       const timeMin = showPast ? undefined : now.toISOString()
       const timeMax = showPast ? now.toISOString() : undefined
@@ -27,10 +40,22 @@ export default function CalendarView() {
       if (timeMax) params.append('timeMax', timeMax)
 
       const response = await fetch(`/api/calendar/events?${params}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch calendar events')
+      }
       const data = await response.json()
-      setEvents(data.events || [])
+      
+      // Sort events by start time
+      const sortedEvents = (data.events || []).sort((a: any, b: any) => {
+        const aTime = a.start?.dateTime || a.start?.date || ''
+        const bTime = b.start?.dateTime || b.start?.date || ''
+        return new Date(aTime).getTime() - new Date(bTime).getTime()
+      })
+      
+      setEvents(sortedEvents)
     } catch (error) {
       console.error('Error fetching events:', error)
+      setError('Failed to load calendar events. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -48,19 +73,20 @@ export default function CalendarView() {
 
   useEffect(() => {
     if (session) {
+      fetchGoogleAccounts()
       fetchEvents()
       if (!showPast) {
         fetchMeetings()
       }
     }
-  }, [session, showPast, fetchEvents, fetchMeetings])
+  }, [session, showPast, fetchEvents, fetchMeetings, fetchGoogleAccounts])
 
   const handleToggleNotetaker = async (event: any, enabled: boolean) => {
     // Find meeting for this event
     const meeting = meetings.find(
       (m) =>
         m.googleAccountId === event.googleAccountId &&
-        new Date(m.startTime).getTime() === new Date(event.start.dateTime).getTime()
+        new Date(m.startTime).getTime() === new Date(event.start.dateTime || event.start.date).getTime()
     )
     
     if (meeting) {
@@ -85,7 +111,7 @@ export default function CalendarView() {
         const newMeeting = updatedMeetings.meetings?.find(
           (m: any) =>
             m.googleAccountId === event.googleAccountId &&
-            new Date(m.startTime).getTime() === new Date(event.start.dateTime).getTime()
+            new Date(m.startTime).getTime() === new Date(event.start.dateTime || event.start.date).getTime()
         )
         if (newMeeting) {
           await handleToggleNotetaker(event, enabled)
@@ -203,16 +229,44 @@ export default function CalendarView() {
         <MeetingList showPast={true} />
       ) : (
         <div className="space-y-4">
-          {events.length === 0 ? (
+          {error ? (
+            <div className="text-center py-12">
+              <p className="text-red-600 mb-4">{error}</p>
+              <button
+                onClick={() => fetchEvents()}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Retry
+              </button>
+            </div>
+          ) : googleAccounts.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              No upcoming events found. Sync your calendar to get started.
+              <p className="mb-4">No Google accounts connected.</p>
+              <p className="mb-4 text-sm">Connect a Google account in Settings to view your calendar events.</p>
+              <Link
+                href="/settings"
+                className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Go to Settings
+              </Link>
+            </div>
+          ) : events.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <p className="mb-4">No upcoming events found.</p>
+              <p className="mb-4 text-sm">Your calendar events will appear here. Make sure you have events scheduled in your Google Calendar.</p>
+              <button
+                onClick={handleSync}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Sync Calendar
+              </button>
             </div>
           ) : (
             events.map((event) => {
               const meeting = meetings.find(
                 (m) =>
                   m.googleAccountId === event.googleAccountId &&
-                  new Date(m.startTime).getTime() === new Date(event.start.dateTime).getTime()
+                  new Date(m.startTime).getTime() === new Date(event.start.dateTime || event.start.date).getTime()
               )
               return (
                 <UpcomingMeetingCard

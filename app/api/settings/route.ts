@@ -44,24 +44,31 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { botJoinMinutesBefore } = body
+    const { botJoinMinutesBefore, facebookAccessToken } = body
 
     let settings = await prisma.userSettings.findUnique({
       where: { userId: session.user.id },
     })
 
+    const updateData: any = {}
+    if (botJoinMinutesBefore !== undefined) {
+      updateData.botJoinMinutesBefore = botJoinMinutesBefore || 5
+    }
+    if (facebookAccessToken !== undefined) {
+      updateData.facebookAccessToken = facebookAccessToken
+    }
+
     if (settings) {
       settings = await prisma.userSettings.update({
         where: { id: settings.id },
-        data: {
-          botJoinMinutesBefore: botJoinMinutesBefore || 5,
-        },
+        data: updateData,
       })
     } else {
       settings = await prisma.userSettings.create({
         data: {
           userId: session.user.id,
           botJoinMinutesBefore: botJoinMinutesBefore || 5,
+          facebookAccessToken: facebookAccessToken || undefined,
         },
       })
     }

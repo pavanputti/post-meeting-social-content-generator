@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { format } from 'date-fns'
-import { Calendar, Clock, Users, Video } from 'lucide-react'
+import { Calendar, Clock, Users, Video, Mail } from 'lucide-react'
 import MeetingDetail from './MeetingDetail'
 
 interface Meeting {
@@ -14,6 +14,9 @@ interface Meeting {
   platform: string | null
   recallBotStatus: string | null
   notetakerEnabled: boolean
+  googleAccount?: {
+    email: string
+  } | null
 }
 
 export default function MeetingList({ showPast }: { showPast: boolean }) {
@@ -82,6 +85,17 @@ export default function MeetingList({ showPast }: { showPast: boolean }) {
                     </span>
                   )}
                 </div>
+                {/* Calendar Account Badge - Always Visible */}
+                {meeting.googleAccount?.email && (
+                  <div className="mb-3">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-100 to-blue-50 rounded-lg border-2 border-blue-400 shadow-md">
+                      <Mail className="w-5 h-5 text-blue-700 flex-shrink-0" />
+                      <span className="text-sm font-bold text-blue-900">
+                        📅 {meeting.googleAccount.email}
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-4 text-gray-600 mt-3">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />

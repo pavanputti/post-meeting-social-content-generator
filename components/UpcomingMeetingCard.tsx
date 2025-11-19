@@ -1,7 +1,7 @@
 'use client'
 
 import { format } from 'date-fns'
-import { Calendar, Clock, Users, Video, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Calendar, Clock, Users, Video, ToggleLeft, ToggleRight, Mail } from 'lucide-react'
 import { useState } from 'react'
 
 interface UpcomingMeetingCardProps {
@@ -83,6 +83,15 @@ export default function UpcomingMeetingCard({
                 {getPlatformIcon(platform)}
               </span>
             )}
+          </div>
+          {/* Calendar Account Badge - Always Visible */}
+          <div className="mb-3">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-100 to-blue-50 rounded-lg border-2 border-blue-400 shadow-md">
+              <Mail className="w-5 h-5 text-blue-700 flex-shrink-0" />
+              <span className="text-sm font-bold text-blue-900">
+                📅 {event.googleAccountEmail || event.email || 'Google Calendar'}
+              </span>
+            </div>
           </div>
           <div className="flex flex-wrap gap-4 text-gray-600 mt-3">
             {event.start?.dateTime ? (

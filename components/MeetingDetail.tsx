@@ -178,12 +178,8 @@ export default function MeetingDetail({
     }
   }
 
-  const handlePost = async (platform: 'linkedin' | 'facebook', e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault()
-      e.stopPropagation()
-    }
-
+  const handlePost = async (e: React.MouseEvent) => {
+    e.preventDefault()
     if (!meeting?.generatedPost) {
       showInfo('Please generate a post first')
       return
@@ -200,26 +196,29 @@ export default function MeetingDetail({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'post',
-          platform,
+          platform: 'all', // Post to all configured platforms
         }),
       })
 
       const data = await response.json()
       
       if (!response.ok) {
-        throw new Error(data.error || `Failed to post to ${platform}`)
+        throw new Error(data.error || 'Failed to post to social media')
       }
 
       if (data.success) {
         await fetchMeeting()
         onUpdate()
-        showSuccess(`Posted to ${platform}!`)
+        const platformsPosted = []
+        if (data.postedToLinkedIn) platformsPosted.push('LinkedIn')
+        if (data.postedToFacebook) platformsPosted.push('Facebook')
+        showSuccess(`Posted to ${platformsPosted.join(' and ')}!`)
       } else {
-        throw new Error(data.error || `Failed to post to ${platform}`)
+        throw new Error(data.error || 'Failed to post to social media')
       }
     } catch (error: any) {
       console.error('Error posting:', error)
-      const errorMessage = error.message || `Failed to post to ${platform}. Please check if your ${platform} account is connected in Settings.`
+      const errorMessage = error.message || 'Failed to post to social media. Please check if your accounts are connected in Settings.'
       
       if (errorMessage.includes('not connected') || errorMessage.includes('expired') || errorMessage.includes('reconnect')) {
         showError(`${errorMessage}\n\nPlease go to Settings to reconnect.`)
@@ -518,9 +517,9 @@ export default function MeetingDetail({
                   >
                     Cancel
                   </button>
-                  {!meeting.postedToLinkedIn && (
+                  {(!meeting.postedToLinkedIn || !meeting.postedToFacebook) && (
                     <button
-                      onClick={(e) => handlePost('linkedin', e)}
+                      onClick={handlePost}
                       disabled={posting}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
                       type="button"
@@ -530,22 +529,7 @@ export default function MeetingDetail({
                       ) : (
                         <Send className="w-4 h-4" />
                       )}
-                      Post to LinkedIn
-                    </button>
-                  )}
-                  {!meeting.postedToFacebook && (
-                    <button
-                      onClick={(e) => handlePost('facebook', e)}
-                      disabled={posting}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
-                      type="button"
-                    >
-                      {posting ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Send className="w-4 h-4" />
-                      )}
-                      Post to Facebook
+                      Post
                     </button>
                   )}
                 </div>
