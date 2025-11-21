@@ -29,17 +29,19 @@ export interface RecallBot {
 export async function createRecallBot(
   apiKey: string,
   meetingUrl: string,
+  meetingStartTime: Date,
   joinBeforeMinutes: number = 5
 ): Promise<RecallBot> {
-  const startTime = new Date()
-  startTime.setMinutes(startTime.getMinutes() - joinBeforeMinutes)
+  // Calculate join time: meeting start time minus joinBeforeMinutes
+  const joinTime = new Date(meetingStartTime)
+  joinTime.setMinutes(joinTime.getMinutes() - joinBeforeMinutes)
   
   const response = await axios.post(
     `${RECALL_API_BASE}/bot`,
     {
       meeting_url: meetingUrl,
       bot_name: 'Post-Meeting Content Generator Bot',
-      join_at: startTime.toISOString(),
+      join_at: joinTime.toISOString(),
       recording_config: {
         transcript: {
           provider: {
