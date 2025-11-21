@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from "@/lib/auth"
 import { prisma } from '@/lib/prisma'
 import { getCalendarEvents } from '@/lib/google-calendar'
-import { extractZoomLink, extractTeamsLink, extractGoogleMeetLink, detectPlatform } from '@/lib/utils'
+import { extractZoomLink, extractTeamsLink, extractGoogleMeetLink, detectPlatform, extractMeetingPassword, addPasswordToZoomUrl } from '@/lib/utils'
 import { createRecallBot } from '@/lib/recall'
 
 export const dynamic = 'force-dynamic'
@@ -68,8 +68,16 @@ export async function POST(request: NextRequest) {
           const teamsLink = extractTeamsLink(description || location || hangoutLink)
           const meetLink = extractGoogleMeetLink(description || location || hangoutLink || meetLinkFromConference)
           
+          // Extract password from description if not already in URL
+          const passwordFromDescription = extractMeetingPassword(description || location)
+          
           // Prioritize: hangoutLink > conferenceData > extracted from text
-          const meetingLink = hangoutLink || meetLinkFromConference || zoomLink || teamsLink || meetLink
+          let meetingLink = hangoutLink || meetLinkFromConference || zoomLink || teamsLink || meetLink
+          
+          // Add password to Zoom URL if found separately and not already in URL
+          if (meetingLink && zoomLink && passwordFromDescription) {
+            meetingLink = addPasswordToZoomUrl(meetingLink, passwordFromDescription)
+          }
 
           const platform = detectPlatform(description, location) || 
                           (hangoutLink || meetLinkFromConference ? 'google-meet' : null) ||
@@ -95,7 +103,7 @@ export async function POST(request: NextRequest) {
             if (meetingLink && !existing.recallBotId && existing.notetakerEnabled) {
               // Create recall bot
               try {
-                const bot = await createRecallBot(recallApiKey, meetingLink, botJoinMinutesBefore)
+                const bot = await createRecallBot(recallApiKey, meetingLink, startTime, botJoinMinutesBefore)
                 await prisma.meeting.update({
                   where: { id: existing.id },
                   data: {
@@ -121,7 +129,7 @@ export async function POST(request: NextRequest) {
           if (meetingLink) {
             // Create recall bot if notetaker is enabled (default to true for new meetings)
             try {
-              const bot = await createRecallBot(recallApiKey, meetingLink, botJoinMinutesBefore)
+              const bot = await createRecallBot(recallApiKey, meetingLink, startTime, botJoinMinutesBefore)
               recallBotId = bot.id
               recallBotStatus = 'scheduled'
             } catch (error) {

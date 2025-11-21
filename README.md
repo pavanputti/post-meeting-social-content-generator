@@ -158,6 +158,10 @@ npm run db:push
 ### 4. Configure Notetaker
 - In Settings, set how many minutes before a meeting the bot should join
 - The bot will automatically join meetings with meeting links (Zoom, Teams, Google Meet)
+- **Password-Protected Meetings**: The app automatically handles password-protected meetings by:
+  - Extracting passwords from meeting URLs when present
+  - Extracting passwords from calendar event descriptions (looks for patterns like "Password: 1234", "Passcode: ABC123", etc.)
+  - Merging passwords into meeting links before sending to Recall.ai bots
 
 ### 5. View Past Meetings
 - Click on a past meeting to view details
@@ -215,6 +219,7 @@ The application uses Vercel cron jobs to poll Recall.ai bots. Configured in `ver
 ### Google Calendar
 - Reads calendar events from connected Google accounts
 - Detects meeting links (Zoom, Teams, Google Meet)
+- Automatically extracts and handles meeting passwords from URLs and descriptions
 - Requires `https://www.googleapis.com/auth/calendar.readonly` scope
 
 ### Recall.ai
@@ -262,6 +267,10 @@ The application uses Vercel cron jobs to poll Recall.ai bots. Configured in `ver
 - Verify meeting link is detected
 - Check bot join time is configured
 - Ensure Recall.ai API key is valid
+- **For password-protected meetings**: 
+  - Ensure the meeting password is included in the meeting URL (e.g., `?pwd=ABC123`)
+  - Or add the password in the calendar event description (e.g., "Password: ABC123")
+  - The app will automatically extract and include passwords when creating bots
 
 ### Social Media Posting Fails
 - Reconnect accounts in Settings
