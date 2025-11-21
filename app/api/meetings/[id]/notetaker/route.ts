@@ -51,7 +51,8 @@ export async function PATCH(
     if (enabled && !meeting.recallBotId && meeting.meetingLink) {
       // Create recall bot
       try {
-        const bot = await createRecallBot(recallApiKey, meeting.meetingLink, botJoinMinutesBefore)
+        const meetingStartTime = new Date(meeting.startTime)
+        const bot = await createRecallBot(recallApiKey, meeting.meetingLink, meetingStartTime, botJoinMinutesBefore)
         recallBotId = bot.id
         recallBotStatus = 'scheduled'
       } catch (error) {
